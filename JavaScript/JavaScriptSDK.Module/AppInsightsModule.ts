@@ -51,6 +51,7 @@ class AppInsightsModule {
             "trackException",
             "trackMetric",
             "trackPageView",
+            "trackPageViewWaterfall",
             "trackTrace"
         ];
 

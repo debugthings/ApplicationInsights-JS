@@ -125,6 +125,8 @@
     <TypeScriptCompile Include="SplitTest.ts" />
     <TypeScriptCompile Include="AppInsights.ts" />
     <TypeScriptCompile Include="Telemetry\PageViewManager.ts" />
+    <TypeScriptCompile Include="Telemetry\PageViewResourcePerformance.ts" />
+    <TypeScriptCompile Include="Telemetry\PageViewResourceTimingManager.ts" />
     <TypeScriptCompile Include="Telemetry\PageVisitTimeManager.ts" />
     <TypeScriptCompile Include="Context\Sample.ts" />
     <TypeScriptCompile Include="Init.ts" />

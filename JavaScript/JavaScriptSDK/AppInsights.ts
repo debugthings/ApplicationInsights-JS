@@ -5,6 +5,8 @@
 /// <reference path="./Telemetry/PageViewManager.ts"/>
 /// <reference path="./Telemetry/PageVisitTimeManager.ts"/>
 /// <reference path="./Telemetry/RemoteDependencyData.ts"/>
+/// <reference path="./Telemetry/PageViewResourcePerformance.ts"/>
+/// <reference path="./Telemetry/PageViewResourceTimingManager.ts"/>
 /// <reference path="./ajax/ajax.ts"/>
 /// <reference path="./SplitTest.ts"/>
 /// <reference path="../JavaScriptSDK.Interfaces/IAppInsights.ts"/>
@@ -13,7 +15,7 @@ module Microsoft.ApplicationInsights {
 
     "use strict";
 
-    export var Version = "1.0.9";
+    export var Version = "1.0.9-jamdavi01";
     export var SnippetVersion: string;
 
     /**
@@ -22,6 +24,7 @@ module Microsoft.ApplicationInsights {
     export interface IAppInsightsInternal {
         sendPageViewInternal(name?: string, url?: string, duration?: number, properties?: Object, measurements?: Object);
         sendPageViewPerformanceInternal(pageViewPerformance: ApplicationInsights.Telemetry.PageViewPerformance);
+        sendPageViewResourcePerformanceInternal(pageViewResourcePerformance: ApplicationInsights.Telemetry.RemoteDependencyData, startTimeAdjust: number);
         flush();
     }
 
@@ -40,8 +43,12 @@ module Microsoft.ApplicationInsights {
         private _eventTracking: Timing;
         private _pageTracking: Timing;
         private _pageViewManager: Microsoft.ApplicationInsights.Telemetry.PageViewManager;
+        private _pageViewResouceTimingManager: Microsoft.ApplicationInsights.Telemetry.PageViewResourceTimingManager;
+        
         private _pageVisitTimeManager: Microsoft.ApplicationInsights.Telemetry.PageVisitTimeManager;
         private _ajaxMonitor: Microsoft.ApplicationInsights.AjaxMonitor;
+
+        private _pageViewEnvelopeTime: string;
 
         public config: IConfig;
         public context: TelemetryContext;
@@ -99,6 +106,7 @@ module Microsoft.ApplicationInsights {
             this.context = new ApplicationInsights.TelemetryContext(configGetters);
 
             this._pageViewManager = new Microsoft.ApplicationInsights.Telemetry.PageViewManager(this, this.config.overridePageViewDuration);
+            this._pageViewResouceTimingManager = new Microsoft.ApplicationInsights.Telemetry.PageViewResourceTimingManager(this);
 
             // initialize event timing
             this._eventTracking = new Timing("trackEvent");
@@ -137,7 +145,19 @@ module Microsoft.ApplicationInsights {
             var pageView = new Telemetry.PageView(name, url, duration, properties, measurements);
             var data = new ApplicationInsights.Telemetry.Common.Data<ApplicationInsights.Telemetry.PageView>(Telemetry.PageView.dataType, pageView);
             var envelope = new Telemetry.Common.Envelope(data, Telemetry.PageView.envelopeType);
+            this._pageViewEnvelopeTime = envelope.time;
+            this.context.track(envelope);
 
+            // reset ajaxes counter
+            this._trackAjaxAttempts = 0;
+        }
+
+        public sendPageViewResourcePerformanceInternal(pageViewResourcePerformance: ApplicationInsights.Telemetry.PageViewResourcePerformance, startTimeAdjust: number) {
+            var data = new ApplicationInsights.Telemetry.Common.Data<ApplicationInsights.Telemetry.RemoteDependencyData>(Telemetry.RemoteDependencyData.dataType, pageViewResourcePerformance);
+            var envelope = new Telemetry.Common.Envelope(data, Telemetry.RemoteDependencyData.envelopeType);
+
+            // Set the timestamp to the offset of the page start time
+            envelope.time = Util.toISOStringForIE8(new Date((new Date(this._pageViewEnvelopeTime).getTime() + startTimeAdjust)));
             this.context.track(envelope);
 
             // reset ajaxes counter
@@ -225,6 +245,24 @@ module Microsoft.ApplicationInsights {
                     LoggingSeverity.CRITICAL,
                     _InternalMessageId.TrackPVFailed,
                     "trackPageView failed, page view will not be collected: " + Util.getExceptionName(e),
+                    { exception: Util.dump(e) });
+            }
+        }
+
+        /**
+         * Logs the page waterfall view of resources loaded. 
+         * @param   minDuration  The minimum duration you want to capture in the water fall.
+         * @param   properties  map[string, string] - additional data used to filter pages and metrics in the portal. Defaults to empty.
+         * @param   measurements    map[string, number] - metrics associated with this page, displayed in Metrics Explorer on the portal. Defaults to empty.
+         */
+        public trackPageViewWaterfall(minDuration?: number, properties?: Object, measurements?: Object) {
+            try {
+                this._pageViewResouceTimingManager.trackPageViewWaterfall(minDuration, properties, measurements);
+            } catch (e) {
+                _InternalLogging.throwInternal(
+                    LoggingSeverity.CRITICAL,
+                    _InternalMessageId.TrackPVFailed,
+                    "trackPageViewWaterfall failed, waterfall dependency graph will not be collected: " + Util.getExceptionName(e),
                     { exception: Util.dump(e) });
             }
         }

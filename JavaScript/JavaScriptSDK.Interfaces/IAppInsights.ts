@@ -48,6 +48,14 @@ module Microsoft.ApplicationInsights {
         trackPageView(name?: string, url?: string, properties?: { [name: string]: string; }, measurements?: { [name: string]: number; }, duration?: number);
 
         /**
+        * Logs the page waterfall view of resources loaded. 
+        * @param   minDuration  The minimum duration you want to capture in the water fall.
+        * @param   properties  map[string, string] - additional data used to filter pages and metrics in the portal. Defaults to empty.
+        * @param   measurements    map[string, number] - metrics associated with this page, displayed in Metrics Explorer on the portal. Defaults to empty.
+        */
+        trackPageViewWaterfall(minDuration?: number, properties?: Object, measurements?: Object);
+
+        /**
          * Start timing an extended event. Call {@link stopTrackEvent} to log the event when it ends.
          * @param   name    A string that identifies this event uniquely within the document.
          */

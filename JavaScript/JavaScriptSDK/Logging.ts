@@ -55,6 +55,7 @@
         TrackMetricFailed,
         TrackPVFailed,
         TrackPVFailedCalc,
+        TrackPVWaterfallFailed,
         TrackTraceFailed,
         TransmissionFailed,
         FailedToSetStorageBuffer,
